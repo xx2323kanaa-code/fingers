@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>Hand – Anatomically Constrained Minimal Model</title>
+<title>Hand Schematic – Open ↔ Pen Hold</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
@@ -26,11 +26,6 @@
     stroke-width: 6;
   }
 
-  .wrist {
-    stroke: yellow;
-    stroke-width: 5;
-  }
-
   .finger {
     stroke: yellow;
     stroke-width: 5;
@@ -42,6 +37,17 @@
     stroke-width: 5;
     stroke-linecap: round;
   }
+
+  .wrist {
+    stroke: yellow;
+    stroke-width: 5;
+  }
+
+  .label {
+    fill: #aaa;
+    font-size: 12px;
+    font-family: sans-serif;
+  }
 </style>
 </head>
 
@@ -49,75 +55,93 @@
 
 <svg viewBox="0 0 360 360">
 
-  <!-- 前腕 → 手首（下方） -->
+  <!-- 手首（前腕との接続） -->
   <line x1="180" y1="300" x2="180" y2="260" class="wrist"/>
 
   <!-- 手掌（固定面） -->
   <rect x="120" y="200" width="120" height="60" rx="20" class="palm"/>
 
-  <!-- 4本指（同じ長さ・正面屈曲） -->
-  <line id="f1" x1="135" y1="200" x2="135" y2="130" class="finger"/>
-  <line id="f2" x1="155" y1="200" x2="155" y2="130" class="finger"/>
-  <line id="f3" x1="175" y1="200" x2="175" y2="130" class="finger"/>
-  <line id="f4" x1="195" y1="200" x2="195" y2="130" class="finger"/>
+  <!-- 第2–5指（同構造・正面短縮） -->
+  <line id="index"  class="finger"/>
+  <line id="middle" class="finger"/>
+  <line id="ring"   class="finger"/>
+  <line id="little" class="finger"/>
 
-  <!-- 親指（別位置・斜め・内転） -->
-  <line id="thumb"
-        x1="120" y1="230"
-        x2="85"  y2="195"
-        class="thumb"/>
+  <!-- 親指（独立・内転方向） -->
+  <line id="thumb" class="thumb"/>
+
+  <!-- 状態表示 -->
+  <text id="stateLabel" x="180" y="40" text-anchor="middle" class="label">
+    OPEN
+  </text>
 
 </svg>
 
 <script>
 /*
-  屈曲 = 長さが短くなる
-  側方には曲がらない
+  Cunningham 準拠・義手訓練用模式図
+  屈曲 = 正面方向への短縮
+  回転・側方変形は一切行わない
 */
 
-const fingers = [
-  { id:"f1", x:135, base:200, open:70, grip:30 },
-  { id:"f2", x:155, base:200, open:70, grip:30 },
-  { id:"f3", x:175, base:200, open:70, grip:30 },
-  { id:"f4", x:195, base:200, open:70, grip:30 }
-];
+// 指の基準位置（中手骨端）
+const baseY = 200;
 
-const thumb = {
-  x1:120, y1:230,
-  x2open:85,  y2open:195,
-  x2grip:110, y2grip:215
+// 第2–5指（同構造）
+const fingers = {
+  index:  { x: 140, open: 75, pen: 35 },
+  middle: { x: 160, open: 75, pen: 30 },
+  ring:   { x: 180, open: 70, pen: 45 },
+  little: { x: 200, open: 60, pen: 55 }
 };
 
-let t = 0;
-let target = 0;
-const speed = 0.05;
+// 親指（独立）
+const thumb = {
+  x1: 120, y1: 230,
+  open: { x2: 85,  y2: 200 },
+  pen:  { x2: 125, y2: 215 }
+};
+
+// 補間パラメータ
+let t = 0;          // 現在値
+let target = 0;     // 0=open, 1=pen
+const speed = 0.08; // 滑らかさ
+
+function lerp(a, b, t) {
+  return a + (b - a) * t;
+}
 
 function animate() {
+  // なめらか補間
   t += (target - t) * speed;
 
-  // 4指：正面方向に短縮
-  fingers.forEach(f => {
-    const len = f.open + (f.grip - f.open) * t;
-    const el = document.getElementById(f.id);
+  // 第2–5指
+  Object.entries(fingers).forEach(([id, f]) => {
+    const len = lerp(f.open, f.pen, t);
+    const el = document.getElementById(id);
     el.setAttribute("x1", f.x);
-    el.setAttribute("y1", f.base);
+    el.setAttribute("y1", baseY);
     el.setAttribute("x2", f.x);
-    el.setAttribute("y2", f.base - len);
+    el.setAttribute("y2", baseY - len);
   });
 
-  // 親指：内側へ寄る
-  const tx = thumb.x2open + (thumb.x2grip - thumb.x2open) * t;
-  const ty = thumb.y2open + (thumb.y2grip - thumb.y2open) * t;
+  // 親指（内転・短縮）
+  const tx = lerp(thumb.open.x2, thumb.pen.x2, t);
+  const ty = lerp(thumb.open.y2, thumb.pen.y2, t);
   const tel = document.getElementById("thumb");
+  tel.setAttribute("x1", thumb.x1);
+  tel.setAttribute("y1", thumb.y1);
   tel.setAttribute("x2", tx);
   tel.setAttribute("y2", ty);
 
   requestAnimationFrame(animate);
 }
 
-// デモ
+// 状態切替（デモ）
 setInterval(() => {
-  target = target ? 0 : 1;
+  target = target === 0 ? 1 : 0;
+  document.getElementById("stateLabel").textContent =
+    target === 0 ? "OPEN" : "PEN HOLD";
 }, 3000);
 
 animate();
