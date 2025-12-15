@@ -2,51 +2,57 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>Hand Schematic – Open ↔ Pen Hold (Corrected)</title>
+<title>Hand Schematic – Correct Pen Hold</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body {
-  margin: 0;
-  background: #000;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
+body{
+  margin:0;
+  background:#000;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+}
+svg{width:360px;height:360px;}
+
+.palm,.finger,.thumb,.wrist{
+  stroke:yellow;
+  stroke-linecap:round;
+}
+.palm{fill:none;stroke-width:6;}
+.finger,.thumb{stroke-width:5;}
+.wrist{stroke-width:5;}
+
+.nail{fill:yellow;}
+
+.pen{
+  stroke:#00ff66; /* 緑 */
+  stroke-width:5;
+  stroke-linecap:round;
+  opacity:0;
 }
 
-svg { width: 360px; height: 360px; }
-
-.palm, .finger, .thumb, .wrist {
-  stroke: yellow;
-  stroke-linecap: round;
-}
-
-.palm { fill: none; stroke-width: 6; }
-.finger, .thumb { stroke-width: 5; }
-.wrist { stroke-width: 5; }
-
-.label {
-  fill: #aaa;
-  font-size: 12px;
-  text-anchor: middle;
+.label{
+  fill:#aaa;
+  font-size:12px;
+  text-anchor:middle;
 }
 </style>
 </head>
 
 <body>
-
 <svg viewBox="0 0 360 360">
 
-  <!-- 手首：橈骨・尺骨（★修正：2本） -->
+  <!-- 手首（橈骨・尺骨） -->
   <line x1="165" y1="300" x2="165" y2="260" class="wrist"/>
   <line x1="195" y1="300" x2="195" y2="260" class="wrist"/>
 
   <!-- 手掌 -->
   <rect x="120" y="200" width="120" height="60" rx="20" class="palm"/>
 
-  <!-- 第2–5指 -->
-  <line id="index"  class="finger"/>
+  <!-- 指（親指に近い→遠い） -->
+  <line id="index"  class="finger"/>  <!-- 人さし指 -->
   <line id="middle" class="finger"/>
   <line id="ring"   class="finger"/>
   <line id="little" class="finger"/>
@@ -54,8 +60,14 @@ svg { width: 360px; height: 360px; }
   <!-- 親指 -->
   <line id="thumb" class="thumb"/>
 
-  <!-- ペン（最終フレームでのみ意味を持つ） -->
-  <line id="pen" stroke="#66ccff" stroke-width="4" opacity="0"/>
+  <!-- 爪（OPEN時のみ） -->
+  <polygon id="n_index"  class="nail"/>
+  <polygon id="n_middle" class="nail"/>
+  <polygon id="n_ring"   class="nail"/>
+  <polygon id="n_little" class="nail"/>
+
+  <!-- ペン -->
+  <line id="pen" class="pen"/>
 
   <text id="stateLabel" x="180" y="40" class="label">OPEN</text>
 </svg>
@@ -63,57 +75,78 @@ svg { width: 360px; height: 360px; }
 <script>
 const baseY = 200;
 
-// ★修正：ペンホールド時の残存長さを非対称に
+// 指の配置：親指に近い順
 const fingers = {
-  index:  { x: 145, open: 75, pen: 55 }, // 最長
-  middle: { x: 165, open: 75, pen: 40 },
-  ring:   { x: 185, open: 70, pen: 28 },
-  little: { x: 205, open: 60, pen: 18 }  // 最短
+  index:  { x:145, open:75, pen:58 }, // 人さし指：最長
+  middle: { x:165, open:75, pen:40 },
+  ring:   { x:185, open:70, pen:28 },
+  little: { x:205, open:60, pen:18 }  // 小指：最短
 };
 
-// ★修正：親指は内転して人さし指へ
+// 親指：内転して人さし指へ
 const thumb = {
-  x1: 120, y1: 235,
-  open: { x2: 90,  y2: 200 },
-  pen:  { x2: 135, y2: 220 }
+  x1:120, y1:235,
+  open:{ x2:90,  y2:200 },
+  pen:{  x2:138, y2:220 }
 };
 
-let t = 0;
-let target = 0;
-const speed = 0.08;
+let t=0;
+let target=0;
+const speed=0.08;
+const lerp=(a,b,t)=>a+(b-a)*t;
 
-const lerp = (a,b,t)=>a+(b-a)*t;
+function setNail(id,x,y){
+  const size=6;
+  const el=document.getElementById(id);
+  el.setAttribute(
+    "points",
+    `${x-size},${y} ${x+size},${y} ${x},${y-size}`
+  );
+}
 
-function animate() {
-  t += (target - t) * speed;
+function animate(){
+  t += (target-t)*speed;
 
   Object.entries(fingers).forEach(([id,f])=>{
-    const len = lerp(f.open, f.pen, t);
-    const el = document.getElementById(id);
-    el.setAttribute("x1", f.x);
-    el.setAttribute("y1", baseY);
-    el.setAttribute("x2", f.x);
-    el.setAttribute("y2", baseY - len);
+    const len=lerp(f.open,f.pen,t);
+    const x=f.x;
+    const y2=baseY-len;
+
+    const el=document.getElementById(id);
+    el.setAttribute("x1",x);
+    el.setAttribute("y1",baseY);
+    el.setAttribute("x2",x);
+    el.setAttribute("y2",y2);
+
+    // 爪：OPEN時のみ
+    const nail=document.getElementById("n_"+id);
+    if(t<0.05){
+      setNail("n_"+id,x,y2);
+      nail.style.opacity=1;
+    }else{
+      nail.style.opacity=0;
+    }
   });
 
-  const tx = lerp(thumb.open.x2, thumb.pen.x2, t);
-  const ty = lerp(thumb.open.y2, thumb.pen.y2, t);
-  const th = document.getElementById("thumb");
-  th.setAttribute("x1", thumb.x1);
-  th.setAttribute("y1", thumb.y1);
-  th.setAttribute("x2", tx);
-  th.setAttribute("y2", ty);
+  // 親指
+  const tx=lerp(thumb.open.x2,thumb.pen.x2,t);
+  const ty=lerp(thumb.open.y2,thumb.pen.y2,t);
+  const th=document.getElementById("thumb");
+  th.setAttribute("x1",thumb.x1);
+  th.setAttribute("y1",thumb.y1);
+  th.setAttribute("x2",tx);
+  th.setAttribute("y2",ty);
 
-  // ★修正：ペンは最終状態でのみ可視
-  const pen = document.getElementById("pen");
-  if (t > 0.95) {
-    pen.setAttribute("opacity", 1);
-    pen.setAttribute("x1", 150);
-    pen.setAttribute("y1", 175);
-    pen.setAttribute("x2", 210);
-    pen.setAttribute("y2", 185);
-  } else {
-    pen.setAttribute("opacity", 0);
+  // ペン：最終状態のみ表示
+  const pen=document.getElementById("pen");
+  if(t>0.95){
+    pen.style.opacity=1;
+    pen.setAttribute("x1",150);
+    pen.setAttribute("y1",175);
+    pen.setAttribute("x2",215);
+    pen.setAttribute("y2",190); // 親指側に傾く
+  }else{
+    pen.style.opacity=0;
   }
 
   requestAnimationFrame(animate);
@@ -127,6 +160,5 @@ setInterval(()=>{
 
 animate();
 </script>
-
 </body>
 </html>
