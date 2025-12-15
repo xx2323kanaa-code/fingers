@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>Hand Schematic – Correct Pen Hold</title>
+<title>Hand Schematic – Right Hand (Dorsal)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
@@ -16,18 +16,22 @@ body{
 }
 svg{width:360px;height:360px;}
 
-.palm,.finger,.thumb,.wrist{
-  stroke:yellow;
-  stroke-linecap:round;
+.palm{
+  fill: rgba(255,255,0,0.25); /* ★半透明：ペン遮蔽 */
+  stroke: yellow;
+  stroke-width:6;
 }
-.palm{fill:none;stroke-width:6;}
-.finger,.thumb{stroke-width:5;}
-.wrist{stroke-width:5;}
 
-.nail{fill:yellow;}
+.finger,.thumb,.wrist{
+  stroke: yellow;
+  stroke-linecap: round;
+  stroke-width:5;
+}
+
+.nail{ fill: yellow; }
 
 .pen{
-  stroke:#00ff66; /* 緑 */
+  stroke:#00ff66;
   stroke-width:5;
   stroke-linecap:round;
   opacity:0;
@@ -44,89 +48,78 @@ svg{width:360px;height:360px;}
 <body>
 <svg viewBox="0 0 360 360">
 
-  <!-- 手首（橈骨・尺骨） -->
+  <!-- ペン（★下レイヤー） -->
+  <line id="pen" class="pen"/>
+
+  <!-- 手首（右手・背側） -->
   <line x1="165" y1="300" x2="165" y2="260" class="wrist"/>
   <line x1="195" y1="300" x2="195" y2="260" class="wrist"/>
 
-  <!-- 手掌 -->
+  <!-- 手の甲 -->
   <rect x="120" y="200" width="120" height="60" rx="20" class="palm"/>
 
-  <!-- 指（親指に近い→遠い） -->
-  <line id="index"  class="finger"/>  <!-- 人さし指 -->
-  <line id="middle" class="finger"/>
-  <line id="ring"   class="finger"/>
+  <!-- 指（右手・背側：親指が右） -->
   <line id="little" class="finger"/>
+  <line id="ring"   class="finger"/>
+  <line id="middle" class="finger"/>
+  <line id="index"  class="finger"/>
+  <line id="thumb"  class="thumb"/>
 
-  <!-- 親指 -->
-  <line id="thumb" class="thumb"/>
-
-  <!-- 爪（OPEN時のみ） -->
-  <polygon id="n_index"  class="nail"/>
-  <polygon id="n_middle" class="nail"/>
-  <polygon id="n_ring"   class="nail"/>
+  <!-- 爪（全指） -->
   <polygon id="n_little" class="nail"/>
-
-  <!-- ペン -->
-  <line id="pen" class="pen"/>
+  <polygon id="n_ring"   class="nail"/>
+  <polygon id="n_middle" class="nail"/>
+  <polygon id="n_index"  class="nail"/>
+  <polygon id="n_thumb"  class="nail"/>
 
   <text id="stateLabel" x="180" y="40" class="label">OPEN</text>
 </svg>
 
 <script>
-const baseY = 200;
+const baseY=200;
 
-// 指の配置：親指に近い順
-const fingers = {
-  index:  { x:145, open:75, pen:58 }, // 人さし指：最長
-  middle: { x:165, open:75, pen:40 },
-  ring:   { x:185, open:70, pen:28 },
-  little: { x:205, open:60, pen:18 }  // 小指：最短
+// 右手・背側配置
+const fingers={
+  little:{ x:135, open:60, pen:18 },
+  ring:{   x:155, open:70, pen:28 },
+  middle:{ x:175, open:75, pen:40 },
+  index:{  x:195, open:75, pen:58 }
 };
 
-// 親指：内転して人さし指へ
-const thumb = {
-  x1:120, y1:235,
-  open:{ x2:90,  y2:200 },
-  pen:{  x2:138, y2:220 }
+// 親指（右側・内転）
+const thumb={
+  x1:240,y1:235,
+  open:{ x2:270,y2:200 },
+  pen:{  x2:210,y2:215 }
 };
 
-let t=0;
-let target=0;
+let t=0,target=0;
 const speed=0.08;
 const lerp=(a,b,t)=>a+(b-a)*t;
 
-function setNail(id,x,y){
-  const size=6;
-  const el=document.getElementById(id);
-  el.setAttribute(
-    "points",
-    `${x-size},${y} ${x+size},${y} ${x},${y-size}`
-  );
+function nail(id,x,y){
+  const s=6;
+  document.getElementById(id)
+    .setAttribute("points",`${x-s},${y} ${x+s},${y} ${x},${y-s}`);
 }
 
 function animate(){
-  t += (target-t)*speed;
+  t+=(target-t)*speed;
 
-  Object.entries(fingers).forEach(([id,f])=>{
+  for(const id in fingers){
+    const f=fingers[id];
     const len=lerp(f.open,f.pen,t);
-    const x=f.x;
-    const y2=baseY-len;
-
+    const x=f.x,y2=baseY-len;
     const el=document.getElementById(id);
     el.setAttribute("x1",x);
     el.setAttribute("y1",baseY);
     el.setAttribute("x2",x);
     el.setAttribute("y2",y2);
 
-    // 爪：OPEN時のみ
-    const nail=document.getElementById("n_"+id);
-    if(t<0.05){
-      setNail("n_"+id,x,y2);
-      nail.style.opacity=1;
-    }else{
-      nail.style.opacity=0;
-    }
-  });
+    const n=document.getElementById("n_"+id);
+    if(t<0.05){ nail("n_"+id,x,y2); n.style.opacity=1; }
+    else n.style.opacity=0;
+  }
 
   // 親指
   const tx=lerp(thumb.open.x2,thumb.pen.x2,t);
@@ -137,25 +130,27 @@ function animate(){
   th.setAttribute("x2",tx);
   th.setAttribute("y2",ty);
 
-  // ペン：最終状態のみ表示
+  const nt=document.getElementById("n_thumb");
+  if(t<0.05){ nail("n_thumb",tx,ty); nt.style.opacity=1; }
+  else nt.style.opacity=0;
+
+  // ペン（先端が親指寄り・より垂直）
   const pen=document.getElementById("pen");
   if(t>0.95){
     pen.style.opacity=1;
-    pen.setAttribute("x1",150);
-    pen.setAttribute("y1",175);
-    pen.setAttribute("x2",215);
-    pen.setAttribute("y2",190); // 親指側に傾く
-  }else{
-    pen.style.opacity=0;
-  }
+    pen.setAttribute("x1",220);
+    pen.setAttribute("y1",160);
+    pen.setAttribute("x2",200);
+    pen.setAttribute("y2",210);
+  }else pen.style.opacity=0;
 
   requestAnimationFrame(animate);
 }
 
 setInterval(()=>{
-  target = target===0 ? 1 : 0;
-  document.getElementById("stateLabel").textContent =
-    target===0 ? "OPEN" : "PEN HOLD";
+  target=target===0?1:0;
+  document.getElementById("stateLabel").textContent=
+    target===0?"OPEN":"PEN HOLD";
 },3000);
 
 animate();
