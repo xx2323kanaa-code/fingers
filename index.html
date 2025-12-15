@@ -2,52 +2,35 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>Hand Schematic – Open ↔ Pen Hold</title>
+<title>Hand Schematic – Open ↔ Pen Hold (Corrected)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-  body {
-    margin: 0;
-    background: #000;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-  }
+body {
+  margin: 0;
+  background: #000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
 
-  svg {
-    width: 360px;
-    height: 360px;
-  }
+svg { width: 360px; height: 360px; }
 
-  .palm {
-    fill: none;
-    stroke: yellow;
-    stroke-width: 6;
-  }
+.palm, .finger, .thumb, .wrist {
+  stroke: yellow;
+  stroke-linecap: round;
+}
 
-  .finger {
-    stroke: yellow;
-    stroke-width: 5;
-    stroke-linecap: round;
-  }
+.palm { fill: none; stroke-width: 6; }
+.finger, .thumb { stroke-width: 5; }
+.wrist { stroke-width: 5; }
 
-  .thumb {
-    stroke: yellow;
-    stroke-width: 5;
-    stroke-linecap: round;
-  }
-
-  .wrist {
-    stroke: yellow;
-    stroke-width: 5;
-  }
-
-  .label {
-    fill: #aaa;
-    font-size: 12px;
-    font-family: sans-serif;
-  }
+.label {
+  fill: #aaa;
+  font-size: 12px;
+  text-anchor: middle;
+}
 </style>
 </head>
 
@@ -55,68 +38,56 @@
 
 <svg viewBox="0 0 360 360">
 
-  <!-- 手首（前腕との接続） -->
-  <line x1="180" y1="300" x2="180" y2="260" class="wrist"/>
+  <!-- 手首：橈骨・尺骨（★修正：2本） -->
+  <line x1="165" y1="300" x2="165" y2="260" class="wrist"/>
+  <line x1="195" y1="300" x2="195" y2="260" class="wrist"/>
 
-  <!-- 手掌（固定面） -->
+  <!-- 手掌 -->
   <rect x="120" y="200" width="120" height="60" rx="20" class="palm"/>
 
-  <!-- 第2–5指（同構造・正面短縮） -->
+  <!-- 第2–5指 -->
   <line id="index"  class="finger"/>
   <line id="middle" class="finger"/>
   <line id="ring"   class="finger"/>
   <line id="little" class="finger"/>
 
-  <!-- 親指（独立・内転方向） -->
+  <!-- 親指 -->
   <line id="thumb" class="thumb"/>
 
-  <!-- 状態表示 -->
-  <text id="stateLabel" x="180" y="40" text-anchor="middle" class="label">
-    OPEN
-  </text>
+  <!-- ペン（最終フレームでのみ意味を持つ） -->
+  <line id="pen" stroke="#66ccff" stroke-width="4" opacity="0"/>
 
+  <text id="stateLabel" x="180" y="40" class="label">OPEN</text>
 </svg>
 
 <script>
-/*
-  Cunningham 準拠・義手訓練用模式図
-  屈曲 = 正面方向への短縮
-  回転・側方変形は一切行わない
-*/
-
-// 指の基準位置（中手骨端）
 const baseY = 200;
 
-// 第2–5指（同構造）
+// ★修正：ペンホールド時の残存長さを非対称に
 const fingers = {
-  index:  { x: 140, open: 75, pen: 35 },
-  middle: { x: 160, open: 75, pen: 30 },
-  ring:   { x: 180, open: 70, pen: 45 },
-  little: { x: 200, open: 60, pen: 55 }
+  index:  { x: 145, open: 75, pen: 55 }, // 最長
+  middle: { x: 165, open: 75, pen: 40 },
+  ring:   { x: 185, open: 70, pen: 28 },
+  little: { x: 205, open: 60, pen: 18 }  // 最短
 };
 
-// 親指（独立）
+// ★修正：親指は内転して人さし指へ
 const thumb = {
-  x1: 120, y1: 230,
-  open: { x2: 85,  y2: 200 },
-  pen:  { x2: 125, y2: 215 }
+  x1: 120, y1: 235,
+  open: { x2: 90,  y2: 200 },
+  pen:  { x2: 135, y2: 220 }
 };
 
-// 補間パラメータ
-let t = 0;          // 現在値
-let target = 0;     // 0=open, 1=pen
-const speed = 0.08; // 滑らかさ
+let t = 0;
+let target = 0;
+const speed = 0.08;
 
-function lerp(a, b, t) {
-  return a + (b - a) * t;
-}
+const lerp = (a,b,t)=>a+(b-a)*t;
 
 function animate() {
-  // なめらか補間
   t += (target - t) * speed;
 
-  // 第2–5指
-  Object.entries(fingers).forEach(([id, f]) => {
+  Object.entries(fingers).forEach(([id,f])=>{
     const len = lerp(f.open, f.pen, t);
     const el = document.getElementById(id);
     el.setAttribute("x1", f.x);
@@ -125,24 +96,34 @@ function animate() {
     el.setAttribute("y2", baseY - len);
   });
 
-  // 親指（内転・短縮）
   const tx = lerp(thumb.open.x2, thumb.pen.x2, t);
   const ty = lerp(thumb.open.y2, thumb.pen.y2, t);
-  const tel = document.getElementById("thumb");
-  tel.setAttribute("x1", thumb.x1);
-  tel.setAttribute("y1", thumb.y1);
-  tel.setAttribute("x2", tx);
-  tel.setAttribute("y2", ty);
+  const th = document.getElementById("thumb");
+  th.setAttribute("x1", thumb.x1);
+  th.setAttribute("y1", thumb.y1);
+  th.setAttribute("x2", tx);
+  th.setAttribute("y2", ty);
+
+  // ★修正：ペンは最終状態でのみ可視
+  const pen = document.getElementById("pen");
+  if (t > 0.95) {
+    pen.setAttribute("opacity", 1);
+    pen.setAttribute("x1", 150);
+    pen.setAttribute("y1", 175);
+    pen.setAttribute("x2", 210);
+    pen.setAttribute("y2", 185);
+  } else {
+    pen.setAttribute("opacity", 0);
+  }
 
   requestAnimationFrame(animate);
 }
 
-// 状態切替（デモ）
-setInterval(() => {
-  target = target === 0 ? 1 : 0;
+setInterval(()=>{
+  target = target===0 ? 1 : 0;
   document.getElementById("stateLabel").textContent =
-    target === 0 ? "OPEN" : "PEN HOLD";
-}, 3000);
+    target===0 ? "OPEN" : "PEN HOLD";
+},3000);
 
 animate();
 </script>
