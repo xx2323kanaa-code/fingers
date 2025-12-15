@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>Hand – Continuous Finger Motion</title>
+<title>Hand – Palm + Continuous Finger Motion</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
@@ -16,14 +16,15 @@
   }
 
   svg {
-    width: 320px;
-    height: 320px;
+    width: 340px;
+    height: 340px;
   }
 
   .palm {
+    fill: none;
     stroke: yellow;
     stroke-width: 6;
-    fill: none;
+    stroke-linejoin: round;
   }
 
   .finger {
@@ -38,10 +39,19 @@
 
 <svg viewBox="0 0 300 300">
 
-  <!-- 手掌（固定） -->
-  <line x1="150" y1="220" x2="150" y2="170" class="palm"/>
+  <!-- 手のひら（固定・面として認識される） -->
+  <path
+    d="
+      M 100 220
+      Q 150 260 200 220
+      L 200 170
+      Q 150 150 100 170
+      Z
+    "
+    class="palm"
+  />
 
-  <!-- 指（5本） -->
+  <!-- 指（5本：根元が手のひらに接続） -->
   <line id="f1" x1="110" y1="170" x2="110" y2="110" class="finger"/>
   <line id="f2" x1="130" y1="170" x2="130" y2="105" class="finger"/>
   <line id="f3" x1="150" y1="170" x2="150" y2="100" class="finger"/>
@@ -52,16 +62,16 @@
 
 <script>
 /*
-  角度だけを連続的に変える
-  → 人は「指が曲がった」と認知する
+  指の角度だけを連続的に変える
+  手のひらは「不動」
 */
 
 const fingers = [
-  { id: "f1", baseX: 110, baseY: 170, len: 60, angleOpen: -90, angleGrip: -140 },
-  { id: "f2", baseX: 130, baseY: 170, len: 65, angleOpen: -90, angleGrip: -150 },
-  { id: "f3", baseX: 150, baseY: 170, len: 70, angleOpen: -90, angleGrip: -160 },
-  { id: "f4", baseX: 170, baseY: 170, len: 65, angleOpen: -90, angleGrip: -150 },
-  { id: "f5", baseX: 190, baseY: 170, len: 55, angleOpen: -90, angleGrip: -135 }
+  { id: "f1", baseX: 110, baseY: 170, len: 60, open: -90, grip: -140 },
+  { id: "f2", baseX: 130, baseY: 170, len: 65, open: -90, grip: -150 },
+  { id: "f3", baseX: 150, baseY: 170, len: 70, open: -90, grip: -160 },
+  { id: "f4", baseX: 170, baseY: 170, len: 65, open: -90, grip: -150 },
+  { id: "f5", baseX: 190, baseY: 170, len: 55, open: -90, grip: -135 }
 ];
 
 let t = 0;
@@ -72,16 +82,15 @@ function deg2rad(d) {
   return d * Math.PI / 180;
 }
 
-function update() {
+function animate() {
   t += (target - t) * speed;
 
   fingers.forEach(f => {
-    const angle =
-      f.angleOpen + (f.angleGrip - f.angleOpen) * t;
+    const angle = f.open + (f.grip - f.open) * t;
+    const r = deg2rad(angle);
 
-    const rad = deg2rad(angle);
-    const x2 = f.baseX + Math.cos(rad) * f.len;
-    const y2 = f.baseY + Math.sin(rad) * f.len;
+    const x2 = f.baseX + Math.cos(r) * f.len;
+    const y2 = f.baseY + Math.sin(r) * f.len;
 
     const el = document.getElementById(f.id);
     el.setAttribute("x1", f.baseX);
@@ -90,7 +99,7 @@ function update() {
     el.setAttribute("y2", y2);
   });
 
-  requestAnimationFrame(update);
+  requestAnimationFrame(animate);
 }
 
 // デモ：3秒ごとに開閉
@@ -98,7 +107,7 @@ setInterval(() => {
   target = target === 0 ? 1 : 0;
 }, 3000);
 
-update();
+animate();
 </script>
 
 </body>
