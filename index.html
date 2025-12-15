@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Hand Morph – Continuous Shape Change</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+  body {
+    margin: 0;
+    background: #000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+  }
+
+  svg {
+    width: 300px;
+  }
+
+  path {
+    fill: none;
+    stroke: yellow;
+    stroke-width: 6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+</style>
+</head>
+
+<body>
+
+<svg viewBox="0 0 300 300">
+  <path id="hand" />
+</svg>
+
+<script>
+/*
+  同一パス構造：
+  - relaxed と grip は
+  - 点の数・順番が完全に同じ
+*/
+
+// リラックス位（指が伸びている）
+const relaxed = [
+  [150, 260], [150, 180],
+  [130, 140], [120, 100],
+  [110, 140], [100, 180],
+  [100, 260]
+];
+
+// 把持位（指が曲がる）
+const grip = [
+  [150, 260], [160, 200],
+  [170, 170], [160, 140],
+  [140, 150], [120, 190],
+  [100, 260]
+];
+
+let t = 0;        // 0.0 → 1.0
+let target = 0;   // 目標
+const speed = 0.03;
+
+function interpolate(a, b, t) {
+  return a.map((p, i) => [
+    p[0] + (b[i][0] - p[0]) * t,
+    p[1] + (b[i][1] - p[1]) * t
+  ]);
+}
+
+function pathFrom(points) {
+  return "M " + points.map(p => p.join(" ")).join(" L ");
+}
+
+function animate() {
+  t += (target - t) * speed;
+  const pts = interpolate(relaxed, grip, t);
+  document.getElementById("hand")
+    .setAttribute("d", pathFrom(pts));
+  requestAnimationFrame(animate);
+}
+
+// デモ：3秒ごとに切替
+setInterval(() => {
+  target = target === 0 ? 1 : 0;
+}, 3000);
+
+animate();
+</script>
+
+</body>
+</html>
