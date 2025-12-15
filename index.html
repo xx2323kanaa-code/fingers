@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>Hand – Anatomically Plausible Minimal Model</title>
+<title>Hand – Anatomically Constrained Minimal Model</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
@@ -29,12 +29,17 @@
   .wrist {
     stroke: yellow;
     stroke-width: 5;
-    stroke-linecap: round;
   }
 
   .finger {
     stroke: yellow;
-    stroke-width: 4;
+    stroke-width: 5;
+    stroke-linecap: round;
+  }
+
+  .thumb {
+    stroke: yellow;
+    stroke-width: 5;
     stroke-linecap: round;
   }
 </style>
@@ -44,105 +49,77 @@
 
 <svg viewBox="0 0 360 360">
 
-  <!-- 手関節（左右2本の線） -->
-  <line x1="145" y1="260" x2="145" y2="310" class="wrist"/>
-  <line x1="215" y1="260" x2="215" y2="310" class="wrist"/>
+  <!-- 前腕 → 手首（下方） -->
+  <line x1="180" y1="300" x2="180" y2="260" class="wrist"/>
 
-  <!-- 手掌（固定） -->
-  <path
-    d="
-      M 120 260
-      Q 180 290 240 260
-      L 240 200
-      Q 180 170 120 200
-      Z
-    "
-    class="palm"
-  />
+  <!-- 手掌（固定面） -->
+  <rect x="120" y="200" width="120" height="60" rx="20" class="palm"/>
 
-  <!-- 指（各2セグメント ×5） -->
-  <g id="finger1">
-    <line id="f1a" class="finger"/>
-    <line id="f1b" class="finger"/>
-  </g>
-  <g id="finger2">
-    <line id="f2a" class="finger"/>
-    <line id="f2b" class="finger"/>
-  </g>
-  <g id="finger3">
-    <line id="f3a" class="finger"/>
-    <line id="f3b" class="finger"/>
-  </g>
-  <g id="finger4">
-    <line id="f4a" class="finger"/>
-    <line id="f4b" class="finger"/>
-  </g>
-  <g id="finger5">
-    <line id="f5a" class="finger"/>
-    <line id="f5b" class="finger"/>
-  </g>
+  <!-- 4本指（同じ長さ・正面屈曲） -->
+  <line id="f1" x1="135" y1="200" x2="135" y2="130" class="finger"/>
+  <line id="f2" x1="155" y1="200" x2="155" y2="130" class="finger"/>
+  <line id="f3" x1="175" y1="200" x2="175" y2="130" class="finger"/>
+  <line id="f4" x1="195" y1="200" x2="195" y2="130" class="finger"/>
+
+  <!-- 親指（別位置・斜め・内転） -->
+  <line id="thumb"
+        x1="120" y1="230"
+        x2="85"  y2="195"
+        class="thumb"/>
 
 </svg>
 
 <script>
 /*
-  各指：
-  - base（手掌との接点）
-  - seg1（近位）
-  - seg2（遠位）
-  回転軸を明確にして屈曲
+  屈曲 = 長さが短くなる
+  側方には曲がらない
 */
 
 const fingers = [
-  { base:[140,200], l1:30, l2:25, open:-90, grip:-140 },
-  { base:[160,195], l1:34, l2:28, open:-90, grip:-150 },
-  { base:[180,190], l1:38, l2:30, open:-90, grip:-160 },
-  { base:[200,195], l1:34, l2:28, open:-90, grip:-150 },
-  { base:[220,200], l1:30, l2:25, open:-90, grip:-135 }
+  { id:"f1", x:135, base:200, open:70, grip:30 },
+  { id:"f2", x:155, base:200, open:70, grip:30 },
+  { id:"f3", x:175, base:200, open:70, grip:30 },
+  { id:"f4", x:195, base:200, open:70, grip:30 }
 ];
+
+const thumb = {
+  x1:120, y1:230,
+  x2open:85,  y2open:195,
+  x2grip:110, y2grip:215
+};
 
 let t = 0;
 let target = 0;
-const speed = 0.04;
+const speed = 0.05;
 
-function rad(d){ return d*Math.PI/180; }
+function animate() {
+  t += (target - t) * speed;
 
-function drawFinger(i, f){
-  const a = f.open + (f.grip - f.open) * t;
-  const a1 = rad(a);
-  const a2 = rad(a + 20*t);
+  // 4指：正面方向に短縮
+  fingers.forEach(f => {
+    const len = f.open + (f.grip - f.open) * t;
+    const el = document.getElementById(f.id);
+    el.setAttribute("x1", f.x);
+    el.setAttribute("y1", f.base);
+    el.setAttribute("x2", f.x);
+    el.setAttribute("y2", f.base - len);
+  });
 
-  const x1 = f.base[0];
-  const y1 = f.base[1];
+  // 親指：内側へ寄る
+  const tx = thumb.x2open + (thumb.x2grip - thumb.x2open) * t;
+  const ty = thumb.y2open + (thumb.y2grip - thumb.y2open) * t;
+  const tel = document.getElementById("thumb");
+  tel.setAttribute("x2", tx);
+  tel.setAttribute("y2", ty);
 
-  const x2 = x1 + Math.cos(a1)*f.l1;
-  const y2 = y1 + Math.sin(a1)*f.l1;
-
-  const x3 = x2 + Math.cos(a2)*f.l2;
-  const y3 = y2 + Math.sin(a2)*f.l2;
-
-  const aEl = document.getElementById(`f${i+1}a`);
-  const bEl = document.getElementById(`f${i+1}b`);
-
-  aEl.setAttribute("x1",x1);
-  aEl.setAttribute("y1",y1);
-  aEl.setAttribute("x2",x2);
-  aEl.setAttribute("y2",y2);
-
-  bEl.setAttribute("x1",x2);
-  bEl.setAttribute("y1",y2);
-  bEl.setAttribute("x2",x3);
-  bEl.setAttribute("y2",y3);
-}
-
-function animate(){
-  t += (target - t)*speed;
-  fingers.forEach((f,i)=>drawFinger(i,f));
   requestAnimationFrame(animate);
 }
 
 // デモ
-setInterval(()=>{ target = target?0:1; },3000);
+setInterval(() => {
+  target = target ? 0 : 1;
+}, 3000);
+
 animate();
 </script>
 
