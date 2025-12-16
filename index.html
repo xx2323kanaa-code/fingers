@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>Hand Schematic – Right Hand (Dorsal)</title>
+<title>Hand Schematic – Left / Right Toggle (Dorsal)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
@@ -10,14 +10,27 @@ body{
   margin:0;
   background:#000;
   display:flex;
+  flex-direction:column;
   justify-content:center;
   align-items:center;
   height:100vh;
+  color:#aaa;
+  font-family:sans-serif;
 }
-svg{width:360px;height:360px;}
+
+svg{
+  width:360px;
+  height:360px;
+}
+
+button{
+  margin-top:10px;
+  padding:6px 14px;
+  font-size:14px;
+}
 
 .palm{
-  fill: rgba(255,255,0,0.25); /* ★半透明：ペン遮蔽 */
+  fill: rgba(255,255,0,0.25);
   stroke: yellow;
   stroke-width:6;
 }
@@ -46,39 +59,47 @@ svg{width:360px;height:360px;}
 </head>
 
 <body>
+
 <svg viewBox="0 0 360 360">
+  <!-- 手全体（切替対象） -->
+  <g id="handGroup">
 
-  <!-- ペン（★下レイヤー） -->
-  <line id="pen" class="pen"/>
+    <!-- ペン（下） -->
+    <line id="pen" class="pen"/>
 
-  <!-- 手首（右手・背側） -->
-  <line x1="165" y1="300" x2="165" y2="260" class="wrist"/>
-  <line x1="195" y1="300" x2="195" y2="260" class="wrist"/>
+    <!-- 手首 -->
+    <line x1="165" y1="300" x2="165" y2="260" class="wrist"/>
+    <line x1="195" y1="300" x2="195" y2="260" class="wrist"/>
 
-  <!-- 手の甲 -->
-  <rect x="120" y="200" width="120" height="60" rx="20" class="palm"/>
+    <!-- 手の甲 -->
+    <rect x="120" y="200" width="120" height="60" rx="20" class="palm"/>
 
-  <!-- 指（右手・背側：親指が右） -->
-  <line id="little" class="finger"/>
-  <line id="ring"   class="finger"/>
-  <line id="middle" class="finger"/>
-  <line id="index"  class="finger"/>
-  <line id="thumb"  class="thumb"/>
+    <!-- 指（LeftHand_Dorsal） -->
+    <line id="little" class="finger"/>
+    <line id="ring"   class="finger"/>
+    <line id="middle" class="finger"/>
+    <line id="index"  class="finger"/>
+    <line id="thumb"  class="thumb"/>
 
-  <!-- 爪（全指） -->
-  <polygon id="n_little" class="nail"/>
-  <polygon id="n_ring"   class="nail"/>
-  <polygon id="n_middle" class="nail"/>
-  <polygon id="n_index"  class="nail"/>
-  <polygon id="n_thumb"  class="nail"/>
+    <!-- 爪 -->
+    <polygon id="n_little" class="nail"/>
+    <polygon id="n_ring"   class="nail"/>
+    <polygon id="n_middle" class="nail"/>
+    <polygon id="n_index"  class="nail"/>
+    <polygon id="n_thumb"  class="nail"/>
+
+  </g>
 
   <text id="stateLabel" x="180" y="40" class="label">OPEN</text>
 </svg>
 
+<button id="toggleHand">Switch to Right Hand</button>
+
 <script>
+/* ===== 手のロジック（共通） ===== */
+
 const baseY=200;
 
-// 右手・背側配置
 const fingers={
   little:{ x:135, open:60, pen:18 },
   ring:{   x:155, open:70, pen:28 },
@@ -86,7 +107,6 @@ const fingers={
   index:{  x:195, open:75, pen:58 }
 };
 
-// 親指（右側・内転）
 const thumb={
   x1:240,y1:235,
   open:{ x2:270,y2:200 },
@@ -121,7 +141,6 @@ function animate(){
     else n.style.opacity=0;
   }
 
-  // 親指
   const tx=lerp(thumb.open.x2,thumb.pen.x2,t);
   const ty=lerp(thumb.open.y2,thumb.pen.y2,t);
   const th=document.getElementById("thumb");
@@ -134,7 +153,6 @@ function animate(){
   if(t<0.05){ nail("n_thumb",tx,ty); nt.style.opacity=1; }
   else nt.style.opacity=0;
 
-  // ペン（先端が親指寄り・より垂直）
   const pen=document.getElementById("pen");
   if(t>0.95){
     pen.style.opacity=1;
@@ -154,6 +172,27 @@ setInterval(()=>{
 },3000);
 
 animate();
+
+/* ===== 左右切替 ===== */
+
+let isLeft=true;
+const handGroup=document.getElementById("handGroup");
+const button=document.getElementById("toggleHand");
+
+button.onclick=()=>{
+  if(isLeft){
+    handGroup.setAttribute(
+      "transform",
+      "scale(-1,1) translate(-360,0)"
+    );
+    button.textContent="Switch to Left Hand";
+  }else{
+    handGroup.setAttribute("transform","");
+    button.textContent="Switch to Right Hand";
+  }
+  isLeft=!isLeft;
+};
 </script>
+
 </body>
 </html>
